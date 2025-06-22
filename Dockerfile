@@ -14,18 +14,14 @@ RUN apk add --no-cache \
     rust \
     git
 
-# Install CrewAI CLI first
-RUN pip install --no-cache-dir crewai
+# Copy project files
+COPY pyproject.toml ./
 
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install the project and its dependencies
+RUN pip install --no-cache-dir -e .
 
 # Copy the entire CrewAI project
 COPY . .
-
-# Install project dependencies
-RUN crewai install
 
 # Expose port for FastAPI
 EXPOSE 8000
