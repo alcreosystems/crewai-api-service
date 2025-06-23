@@ -20,7 +20,7 @@ COPY pyproject.toml ./
 # Install the project and its dependencies
 RUN pip install --no-cache-dir -e .
 
-# Copy the entire CrewAI project
+# Copy the entire project
 COPY . .
 
 # Expose port for FastAPI
