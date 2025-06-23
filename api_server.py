@@ -11,7 +11,6 @@ import uuid
 import asyncio
 import os
 import sys
-import importlib.util
 from datetime import datetime
 import json
 import logging
@@ -46,45 +45,20 @@ class JobStatus(BaseModel):
 def load_crew_module():
     """Dynamically load the CrewAI crew from the project"""
     try:
-        # Try to import from common locations
-        possible_locations = [
-            "src.*/crew.py",  # Standard CrewAI structure
-            "crew.py",        # Root level
-            "main.py"         # Alternative
-        ]
+        # Add the marketing_posts source path to Python path
+        sys.path.insert(0, '/app/marketing_strategy/src')
         
-        # For now, assume standard structure
-        spec = importlib.util.spec_from_file_location(
-            "crew_module", 
-            "marketing_strategy/src/marketing_posts/crew.py"  # Marketing strategy path
-        )
+        # Import the crew module directly
+        from marketing_posts.crew import MarketingPostsCrew
+        return MarketingPostsCrew
         
-        if spec and spec.loader:
-            crew_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(crew_module)
-            return crew_module
-        else:
-            # Fallback: try to import from current directory
-            import crew as crew_module
-            return crew_module
-            
     except Exception as e:
         logger.error(f"Failed to load crew module: {e}")
         raise ImportError(f"Could not load CrewAI crew module: {e}")
 
 def get_crew_class():
     """Get the CrewAI crew class from the loaded module"""
-    crew_module = load_crew_module()
-    
-    # Look for classes that end with 'Crew'
-    for attr_name in dir(crew_module):
-        attr = getattr(crew_module, attr_name)
-        if (isinstance(attr, type) and 
-            attr_name.endswith('Crew') and 
-            attr_name != 'Crew'):  # Exclude the base Crew class
-            return attr
-    
-    raise AttributeError("No CrewAI crew class found in module")
+    return load_crew_module()
 
 async def run_crew_job(job_id: str, inputs: Dict[str, Any]):
     """Run CrewAI crew asynchronously"""
