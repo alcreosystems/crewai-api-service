@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir \
 COPY . .
 
 # Set Python path to include our source directory
-ENV PYTHONPATH=/app:/app/marketing_strategy/src
+ENV PYTHONPATH=/app:/app/marketing_strategy:/app/marketing_strategy/src
 
 # Expose port for FastAPI
 EXPOSE 8000
