@@ -14,14 +14,20 @@ RUN apk add --no-cache \
     rust \
     git
 
-# Copy project files
-COPY pyproject.toml ./
-
-# Install the project and its dependencies
-RUN pip install --no-cache-dir -e .
+# Install CrewAI and dependencies directly
+RUN pip install --no-cache-dir \
+    "crewai[tools]==0.85.0" \
+    "crewai-tools>=0.4.6" \
+    "fastapi>=0.104.1" \
+    "uvicorn[standard]>=0.24.0" \
+    "python-multipart>=0.0.6" \
+    "python-dotenv>=1.0.0"
 
 # Copy the entire project
 COPY . .
+
+# Set Python path to include our source directory
+ENV PYTHONPATH=/app:/app/marketing_strategy/src
 
 # Expose port for FastAPI
 EXPOSE 8000
