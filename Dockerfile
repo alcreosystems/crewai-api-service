@@ -1,23 +1,22 @@
-# Use Python 3.11 Alpine - matches CrewAI requirements
-FROM python:3.11-alpine3.22
+# Use Python 3.11 Debian - better package compatibility than Alpine
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
 # Install system dependencies for CrewAI
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     gcc \
-    musl-dev \
+    g++ \
+    build-essential \
     libffi-dev \
-    openssl-dev \
-    cargo \
-    rust \
-    git
+    libssl-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install CrewAI and dependencies directly
+# Install CrewAI and dependencies directly (without tools to avoid conflicts)
 RUN pip install --no-cache-dir \
-    "crewai[tools]==0.85.0" \
-    "crewai-tools>=0.4.6" \
+    "crewai==0.85.0" \
     "fastapi>=0.104.1" \
     "uvicorn[standard]>=0.24.0" \
     "python-multipart>=0.0.6" \
