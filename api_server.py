@@ -56,7 +56,7 @@ def load_crew_module():
         # For now, assume standard structure
         spec = importlib.util.spec_from_file_location(
             "crew_module", 
-            "src/marketing_posts/crew.py"  # Marketing strategy path
+            "marketing_strategy/src/marketing_posts/crew.py"  # Marketing strategy path
         )
         
         if spec and spec.loader:
