@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-FastAPI wrapper for CrewAI projects
+FastAPI wrapper for CrewAI projects - FIXED VERSION
 This allows n8n and other services to interact with CrewAI via HTTP
 """
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 import uuid
@@ -24,6 +25,15 @@ app = FastAPI(
     title="CrewAI API Service",
     description="Official CrewAI project with REST API wrapper for n8n integration",
     version="1.0.0"
+)
+
+# Add CORS middleware - FIXES browser "failed to fetch" errors
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify your n8n domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Job tracking storage (use Redis in production)
@@ -74,7 +84,7 @@ async def run_crew_job(job_id: str, inputs: Dict[str, Any]):
         crew = crew_instance.crew()
         result = crew.kickoff(inputs=inputs)
         
-        # Store the result
+        # Store the result - Convert CrewAI result to string
         jobs[job_id]["status"] = "completed"
         jobs[job_id]["result"] = str(result)
         jobs[job_id]["completed_at"] = datetime.now().isoformat()
@@ -93,7 +103,15 @@ async def root():
     return {
         "message": "CrewAI API Service is running",
         "version": "1.0.0",
-        "description": "Official CrewAI project with REST API wrapper"
+        "description": "Official CrewAI project with REST API wrapper for n8n integration",
+        "endpoints": {
+            "health": "/health",
+            "crew_info": "/crew/info", 
+            "run_async": "/crew/run",
+            "run_sync": "/crew/run-sync",
+            "job_status": "/crew/status/{job_id}",
+            "job_result": "/crew/result/{job_id}"
+        }
     }
 
 @app.get("/health")
@@ -182,18 +200,32 @@ async def delete_job(job_id: str):
 
 @app.get("/crew/info")
 async def crew_info():
-    """Get information about the loaded CrewAI crew"""
+    """Get information about the loaded CrewAI crew - FIXED VERSION"""
     try:
         crew_class = get_crew_class()
         crew_instance = crew_class()
         
+        # Get crew object
+        crew = crew_instance.crew()
+        
+        # Extract agent and task information safely
+        agents_info = []
+        if hasattr(crew, 'agents') and crew.agents:
+            agents_info = [{"role": agent.role, "goal": agent.goal} for agent in crew.agents]
+        
+        tasks_count = 0
+        if hasattr(crew, 'tasks') and crew.tasks:
+            tasks_count = len(crew.tasks)
+        
         return {
             "crew_class": crew_class.__name__,
-            "agents": [agent.role for agent in crew_instance.agents],
-            "tasks": len(crew_instance.tasks),
-            "available": True
+            "agents": agents_info,
+            "tasks_count": tasks_count,
+            "available": True,
+            "process": str(crew.process) if hasattr(crew, 'process') else "unknown"
         }
     except Exception as e:
+        logger.error(f"Error getting crew info: {e}")
         return {
             "error": str(e),
             "available": False
@@ -216,6 +248,7 @@ async def run_crew_sync(crew_input: CrewInput):
             "timestamp": datetime.now().isoformat()
         }
     except Exception as e:
+        logger.error(f"Sync crew execution failed: {e}")
         raise HTTPException(status_code=500, detail=f"Crew execution failed: {str(e)}")
 
 if __name__ == "__main__":
